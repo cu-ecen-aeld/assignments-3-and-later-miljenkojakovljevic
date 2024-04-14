@@ -1,3 +1,5 @@
+#!/bin/sh
+
 if [ $# -lt 2 ]
 then
 	echo "Not all arguments supplied. Please provide filesdir and searchstr."   # h l  j k
