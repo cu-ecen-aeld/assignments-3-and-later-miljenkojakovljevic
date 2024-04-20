@@ -32,6 +32,10 @@ int main(int argc, char **argv) {
 
 	ssize_t wroteBytes = write(fd, writestr, strlen(writestr));
 
+	if (wroteBytes == -1) {
+		syslog(LOG_ERR, "Could to write string %s to file %s", writestr, writefile);
+	}
+
 	closelog();
 }
 
