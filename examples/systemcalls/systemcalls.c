@@ -1,4 +1,14 @@
 #include "systemcalls.h"
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <sys/wait.h>
+
+#include <stdio.h>
+
+#include <sys/stat.h>
+#include <fcntl.h>
 
 /**
  * @param cmd the command to execute with system()
@@ -16,8 +26,8 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
-
-    return true;
+	int rval = system(cmd);
+    return (rval == 0);
 }
 
 /**
@@ -43,6 +53,7 @@ bool do_exec(int count, ...)
     for(i=0; i<count; i++)
     {
         command[i] = va_arg(args, char *);
+		printf("Debug command[%i] = %s \n", i, command[i]);
     }
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
@@ -61,6 +72,32 @@ bool do_exec(int count, ...)
 
     va_end(args);
 
+	pid_t pid = fork();
+
+	if (pid == -1) {
+		return false;
+	}
+
+	if ( pid == 0 ) {
+		// child
+		
+		int execRetVal = execv(command[0], command);
+		printf("execvRetVal: %d \n", execRetVal);
+		exit(EXIT_FAILURE);
+	}  else {
+		// parent
+		int status;
+		int retval = waitpid(pid, &status, 0);
+
+		if (retval == -1) {
+			return false;
+		}
+		
+		//has the child process terminated normally
+        return WIFEXITED(status) && (WEXITSTATUS(status) == 0);
+	}
+
+
     return true;
 }
 
@@ -78,6 +115,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     for(i=0; i<count; i++)
     {
         command[i] = va_arg(args, char *);
+		printf("Debug command[%i] = %s \n", i, command[i]);
     }
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
@@ -95,5 +133,38 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 
     va_end(args);
 
+	int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+
+	if (fd < 0) { perror("open"); abort(); }
+
+	pid_t pid = fork();
+
+	if (pid < 0) {
+		return false;
+	} else if (pid == 0) {
+		// child
+		if (dup2(fd, 1) < 0) {
+			perror("dup2");
+			return false;
+		}
+		close(fd);
+
+		int retVal = execv(command[0], command);
+		printf("execv retval: %d \n", retVal);
+		return false;
+    } else {
+		// parent
+		int status;
+		close(fd);
+		int retval;
+		if ( (retval = waitpid(pid, &status, 0)) == -1) {
+			return false;
+		}
+
+		return WIFEXITED(status) && (WEXITSTATUS(status) == 0);
+	}
+
     return true;
 }
+
+
