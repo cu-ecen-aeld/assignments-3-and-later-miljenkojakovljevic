@@ -40,7 +40,7 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
     make -j ${NUM_CPU} ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} all
-    make ${NUM_CPU} ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} dtbs
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} dtbs
 fi
 
 echo "Adding the Image in outdir"
@@ -108,7 +108,7 @@ do
 done
 
 chmod a+rw -R $OUTDIR/rootfs/lib
-chmod a+rw -R $OUTDIR/rootfs/lib
+chmod a+rw -R $OUTDIR/rootfs/lib64
 
 # TODO: Make device nodes
 sudo mknod -m 666 $OUTDIR/rootfs/dev/null c 1 3
@@ -132,10 +132,14 @@ sudo chown -R root:root $OUTDIR/rootfs
 # TODO: Create initramfs.cpio.gz
 cd $OUTDIR/rootfs
 find . | cpio -H newc -ov --owner root:root > $OUTDIR/initramfs.cpio
+echo "cpio finished"
 
 cd $OUTDIR
 ls
 gzip -f initramfs.cpio
+echo "Copy kernel image"
+cp $OUTDIR/linux-stable/arch/arm64/boot/Image $OUTDIR
 
+echo "END"
 
 
